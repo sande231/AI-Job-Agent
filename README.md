@@ -1,397 +1,659 @@
-# AI Job Application Agent
+# AI Job Agent
 
-An intelligent backend system that helps job seekers automate resume analysis, job matching, and application tracking using Python, FastAPI, and AI integration.
+AI Job Agent is a full-stack project I am building to make the internship and job-search process more organized and intelligent.
 
-## Overview
+The idea started from a simple problem: searching for internships, comparing job descriptions with a resume, keeping track of applications, and remembering interviews can become difficult when everything is handled manually.
 
-The AI Job Application Agent is designed to streamline the job search process by:
+This project brings those tasks together in one system. The backend can analyze a resume, discover live internship opportunities, calculate job-match scores using AI, track applications, process job-related emails, and manage interview reminders.
 
-- **Resume Parsing**: Extract structured information from PDF resumes
-- **Candidate Profiling**: Automatically build candidate profiles from resume data
-- **Job Matching**: Compare candidate skills with job requirements using keyword and semantic analysis
-- **Application Tracking**: Manage and monitor job applications throughout the hiring process
-- **AI Integration**: Leverage LLMs for intelligent resume analysis and recommendations
+The project is currently under active development.
 
-## Features
+---
 
-### Current Features ✅
+## What the Project Does
 
-- FastAPI REST API with automatic Swagger documentation
-- PDF resume upload and text extraction
-- Candidate profile creation and management
-- Job matching with skill comparison
-- SQLite database for persistent storage
-- Application tracker (CRUD operations)
-- Match score calculation with recommendations
+AI Job Agent currently supports several parts of the job-search workflow:
 
-### Upcoming Features 🚀
+- Resume parsing and candidate profile creation
+- AI-powered resume and job-description comparison
+- Live internship discovery
+- Job-match scoring
+- Duplicate job detection
+- Application tracking
+- Application status management
+- Gmail-based job email processing
+- Interview date tracking
+- Interview reminders
+- Application notes
+- Dashboard data for a future frontend
 
-- AI-powered skill extraction from resumes
-- Semantic job matching using embeddings
-- Resume tailoring based on job descriptions
-- Automated cover letter generation
-- Advanced job search and filtering
-- Job ranking by match score
-- Frontend dashboard
+The goal is not to automatically apply to every job. Instead, the system helps identify relevant opportunities and keeps the user in control of the application process.
+
+---
+
+## How It Works
+
+The basic workflow is:
+
+```text
+Resume
+   ↓
+Candidate Profile
+   ↓
+Live Job Discovery
+   ↓
+AI Job Analysis
+   ↓
+Match Score
+   ↓
+Discovered / Review / Skip
+   ↓
+Application Tracker
+   ↓
+Applied
+   ↓
+Assessment
+   ↓
+Interview
+   ↓
+Offer / Rejected
+```
+
+---
+
+## Resume Processing
+
+A user can upload a PDF resume to the backend.
+
+The system extracts information such as:
+
+- Name
+- Education
+- Skills
+- Experience
+- Projects
+- Career information
+
+The extracted information is converted into a structured candidate profile and stored so that it can later be used during job analysis.
+
+---
+
+## AI-Powered Job Matching
+
+One of the main features of the project is comparing a candidate's resume with a job description.
+
+The backend uses the OpenAI API to analyze the two and return information such as:
+
+- Match score
+- Matching skills
+- Missing skills
+- Strengths
+- Areas for improvement
+- Recommendation
+
+For example:
+
+```text
+Job: AI Engineering Intern
+Match Score: 78%
+
+Matching Skills:
+- Python
+- APIs
+- Machine Learning
+- AI
+
+Missing Skills:
+- Some job-specific technologies
+```
+
+The match score is meant to help prioritize opportunities. It is not intended to guarantee whether someone will receive an interview or job offer.
+
+---
+
+## Live Job Discovery
+
+The project integrates with the Adzuna Jobs API to retrieve real internship and job listings.
+
+The current search focuses mainly on technical internships such as:
+
+- Software Engineering Intern
+- AI Intern
+- Machine Learning Intern
+- Generative AI Intern
+
+Additional categories can easily be added later.
+
+After jobs are retrieved, the system compares them against the stored resume profile.
+
+---
+
+## Job Classification
+
+Jobs are organized according to their AI match score.
+
+| Match Score | Status |
+|---|---|
+| 70–100 | Discovered |
+| 55–69 | Review |
+| Below 55 | Skip |
+
+High-scoring jobs are saved as opportunities, while medium-scoring jobs are kept for manual review.
+
+Low-scoring jobs are skipped so that the user can focus on more relevant positions.
+
+---
+
+## Duplicate Job Detection
+
+Job APIs can sometimes return the same opportunity multiple times or provide different tracking URLs for the same posting.
+
+To reduce duplicate records, the backend checks information such as:
+
+- Job title
+- Company
+- Location
+
+before saving a discovered opportunity.
+
+This also prevents unnecessary AI analysis of jobs that have already been processed.
+
+---
+
+## Application Tracking
+
+Jobs can be moved from the discovered-jobs list into the application tracker.
+
+An application can move through the following statuses:
+
+```text
+Saved
+Applied
+Assessment
+Interview
+Offer
+Rejected
+```
+
+Each application can contain:
+
+- Job title
+- Company
+- Description
+- Location
+- Job URL
+- Match score
+- Application status
+- Date applied
+- Interview date
+- Deadline
+- Notes
+
+This creates one place to keep track of the entire application process.
+
+---
+
+## Moving a Job to Applications
+
+A discovered opportunity can be moved into the application tracker through:
+
+```text
+POST /discovered-jobs/{job_id}/apply
+```
+
+When this happens, the backend:
+
+1. Retrieves the discovered job
+2. Creates an application record
+3. Changes the application status to `Applied`
+4. Stores the application date
+5. Preserves the original job information
+6. Updates the discovered-job status
+
+The system also prevents the same discovered job from being moved multiple times.
+
+---
+
+## Application Status Updates
+
+Application status can be updated through:
+
+```text
+PUT /applications/{application_id}/status
+```
+
+Supported statuses currently include:
+
+```text
+Saved
+Applied
+Assessment
+Interview
+Offer
+Rejected
+```
+
+This makes it possible to track an application as it moves through the hiring process.
+
+---
+
+## Interview Management
+
+Interview information can also be stored for an application.
+
+```text
+PUT /applications/{application_id}/interview
+```
+
+When an interview is scheduled, the system can:
+
+- Store the interview date and time
+- Update the application status
+- Include the interview in upcoming-interview checks
+- Use the date for reminder processing
+
+---
+
+## Interview Reminders
+
+The project includes an interview reminder system.
+
+The backend checks scheduled interviews and determines whether an interview is approaching.
+
+It can:
+
+- Find upcoming interviews
+- Check whether an interview is within the reminder window
+- Send an email reminder
+- Record that the reminder was sent
+- Prevent duplicate reminders
+
+APScheduler is used to support scheduled background checks.
+
+---
+
+## Gmail Integration
+
+The backend also includes Gmail integration for processing job-related messages.
+
+The email workflow can:
+
+- Retrieve recent emails
+- Detect whether an email is related to a job application
+- Ignore unrelated messages
+- Classify recruiter or application emails
+- Match an email with an existing application
+- Extract useful dates
+- Prevent the same email from being processed repeatedly
+
+This allows application information to be updated from real email activity instead of relying completely on manual updates.
+
+---
+
+## Application Notes
+
+Notes can be attached to an application using:
+
+```text
+PUT /applications/{application_id}/notes
+```
+
+For example, notes can be used for:
+
+- Interview preparation
+- Recruiter information
+- Follow-up reminders
+- Questions to ask during an interview
+- Technical topics to review
+
+---
+
+## Dashboard API
+
+The backend provides a dashboard endpoint:
+
+```text
+GET /dashboard
+```
+
+It combines information from different parts of the system and currently returns:
+
+- Total applications
+- Application status summary
+- Upcoming interviews
+- Top job matches
+- Recent applications
+- Jobs waiting for review
+- Number of offers
+
+Jobs that have already been moved into the application tracker are excluded from the available top-job recommendations.
+
+The dashboard endpoint will be used by the frontend in the next phase of development.
+
+---
 
 ## Technology Stack
 
 ### Backend
-- **Framework**: FastAPI 0.141.1
-- **Web Server**: Uvicorn
-- **Data Validation**: Pydantic 2.13.4
-- **Database**: SQLite3
-- **File Processing**: PyPDF 6.15.0
-- **Language**: Python 3.x
 
-### Planned AI Integration
+- Python
+- FastAPI
+- Uvicorn
+- Pydantic
+
+### Artificial Intelligence
+
 - OpenAI API
-- Google Gemini
-- Anthropic Claude
-- Other LLM providers (pluggable architecture)
 
-## Installation
+### Database
 
-### Prerequisites
-- Python 3.8+
-- pip
+- SQLite
 
-### Setup
+### Job Discovery
 
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/sande231/AI-Job-Agent.git
-   cd AI-Job-Agent
-   ```
+- Adzuna Jobs API
 
-2. **Navigate to backend**
-   ```bash
-   cd backend
-   ```
+### Email
 
-3. **Create virtual environment**
-   ```bash
-   python3 -m venv venv
-   source venv/bin/activate  # macOS/Linux
-   # or
-   venv\Scripts\activate  # Windows
-   ```
+- Gmail API
+- Email/SMTP services
 
-4. **Install dependencies**
-   ```bash
-   pip install -r requirements.txt
-   ```
+### Automation
 
-## Quick Start
+- APScheduler
 
-### Run the Server
+### Development Tools
+
+- Git
+- GitHub
+- Docker
+- VS Code
+
+---
+
+## System Architecture
+
+```text
+                    React Frontend
+                    (Next Phase)
+                          │
+                          ▼
+                   FastAPI Backend
+                          │
+        ┌─────────────────┼─────────────────┐
+        │                 │                 │
+        ▼                 ▼                 ▼
+     SQLite            OpenAI            Adzuna
+     Database            API             Jobs API
+        │
+        ▼
+      Gmail
+       API
+```
+
+FastAPI acts as the main backend layer and connects the different services together.
+
+SQLite stores application, job, resume, and reminder information.
+
+OpenAI is used for intelligent resume/job analysis, while Adzuna provides live job listings and Gmail provides email-related automation.
+
+---
+
+## Project Structure
+
+```text
+AI-Job-Agent/
+│
+├── README.md
+├── .gitignore
+│
+└── backend/
+    │
+    ├── main.py
+    ├── requirements.txt
+    │
+    ├── database/
+    │   └── database.py
+    │
+    ├── models/
+    │   ├── application.py
+    │   ├── discovered_job.py
+    │   ├── interview_update.py
+    │   ├── notes_update.py
+    │   ├── resume_profile.py
+    │   └── status_update.py
+    │
+    ├── services/
+    │   ├── ai_service.py
+    │   ├── application_matcher.py
+    │   ├── date_extractor.py
+    │   ├── email_classifier.py
+    │   ├── email_service.py
+    │   ├── experience_extractor.py
+    │   ├── job_discovery_service.py
+    │   ├── profile_extractor.py
+    │   ├── profile_store.py
+    │   ├── project_extractor.py
+    │   ├── reminder_service.py
+    │   ├── scheduler_service.py
+    │   └── skill_extractor.py
+    │
+    └── test_*.py
+```
+
+---
+
+## Getting Started
+
+### 1. Clone the repository
+
+```bash
+git clone https://github.com/sande231/AI-Job-Agent.git
+cd AI-Job-Agent
+```
+
+### 2. Go to the backend
+
+```bash
+cd backend
+```
+
+### 3. Create a virtual environment
+
+```bash
+python3 -m venv venv
+```
+
+Activate it on macOS/Linux:
+
+```bash
+source venv/bin/activate
+```
+
+### 4. Install dependencies
+
+```bash
+pip install -r requirements.txt
+```
+
+---
+
+## Environment Variables
+
+Create a `.env` file inside the `backend` directory.
+
+For example:
+
+```env
+OPENAI_API_KEY=your_openai_api_key
+ADZUNA_APP_ID=your_adzuna_app_id
+ADZUNA_APP_KEY=your_adzuna_app_key
+```
+
+Additional Gmail/email credentials may be required when using the email features.
+
+**Never commit API keys, passwords, OAuth tokens, or other credentials to GitHub.**
+
+---
+
+## Running the Backend
+
+From the `backend` directory:
 
 ```bash
 uvicorn main:app --reload
 ```
 
-The server will start at `http://127.0.0.1:8000`
+The API will run locally at:
 
-### Access API Documentation
-
-- **Swagger UI**: http://127.0.0.1:8000/docs
-- **OpenAPI Schema**: http://127.0.0.1:8000/openapi.json
-
-## API Endpoints
-
-### Profile Management
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/profile` | Retrieve candidate profile |
-| POST | `/profile` | Create/update candidate profile |
-
-### Job Matching
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/match-job` | Analyze job match with candidate |
-
-### Applications
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/applications` | Save new application |
-| GET | `/applications` | Retrieve all applications |
-| PUT | `/applications/{id}/status` | Update application status |
-| DELETE | `/applications/{id}` | Delete application |
-
-### Resume Processing
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/upload-resume` | Upload and extract resume PDF |
-
-### General
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/` | Welcome message |
-| GET | `/about` | Project information |
-
-## Usage Examples
-
-### 1. Create Candidate Profile
-
-```bash
-curl -X POST http://localhost:8000/profile \
-  -H "Content-Type: application/json" \
-  -d '{
-    "name": "Sandeep Shah",
-    "education": "Bachelor in Computer Science",
-    "career_goal": "AI Internship",
-    "skills": ["Python", "FastAPI", "React", "Machine Learning", "Docker"]
-  }'
+```text
+http://127.0.0.1:8000
 ```
 
-### 2. Upload Resume
+FastAPI Swagger documentation is available at:
 
-```bash
-curl -X POST http://localhost:8000/upload-resume \
-  -F "file=@resume.pdf"
+```text
+http://127.0.0.1:8000/docs
 ```
 
-### 3. Analyze Job Match
+---
 
-```bash
-curl -X POST http://localhost:8000/match-job \
-  -H "Content-Type: application/json" \
-  -d '{
-    "profile": {
-      "name": "Sandeep Shah",
-      "skills": ["Python", "FastAPI", "Machine Learning"]
-    },
-    "job": {
-      "title": "AI Intern",
-      "company": "Tech Corp",
-      "description": "Seeking Python, FastAPI, and ML experience"
-    }
-  }'
+## Main API Endpoints
+
+Some of the main endpoints currently include:
+
+```text
+GET    /applications
+POST   /applications
+
+PUT    /applications/{application_id}/status
+PUT    /applications/{application_id}/interview
+PUT    /applications/{application_id}/notes
+
+GET    /discovered-jobs
+POST   /discovered-jobs/{job_id}/apply
+
+GET    /jobs/live-preview
+POST   /jobs/live-discover-and-save
+
+POST   /upload-resume
+
+GET    /dashboard
 ```
 
-### 4. Save Application
+FastAPI's Swagger interface can be used to view and test the available endpoints.
 
-```bash
-curl -X POST http://localhost:8000/applications \
-  -H "Content-Type: application/json" \
-  -d '{
-    "title": "ML Internship",
-    "company": "Google",
-    "description": "Machine Learning internship position",
-    "status": "Applied"
-  }'
+---
+
+## Responsible Use of AI
+
+The AI component is designed to assist with job analysis rather than make hiring decisions.
+
+A few principles I am following while developing the project are:
+
+- Do not invent skills that are not present in the resume
+- Do not invent education or work experience
+- Base job analysis on available resume information
+- Clearly identify missing skills
+- Keep the user involved in application decisions
+- Treat match scores as guidance rather than guarantees
+
+---
+
+## Security
+
+Sensitive and local development files are excluded through `.gitignore`.
+
+Examples include:
+
+```text
+.env
+*.db
+backend/venv/
+*.backup
 ```
 
-## Project Structure
+Files containing the following information should never be committed:
 
-```
-AI-Job-Agent/
-├── README.md
-├── .gitignore
-│
-└── backend/
-    ├── main.py                 # FastAPI application entry point
-    ├── requirements.txt        # Python dependencies
-    ├── applications.db         # SQLite database (local)
-    │
-    ├── models/                 # Pydantic data models
-    │   ├── application.py
-    │   ├── job.py
-    │   ├── profile.py
-    │   ├── match_request.py
-    │   └── status_update.py
-    │
-    ├── services/               # Business logic
-    │   ├── job_matcher.py      # Job matching algorithm
-    │   └── resume_parser.py    # PDF text extraction
-    │
-    ├── database/               # Database operations
-    │   └── database.py
-    │
-    └── venv/                   # Virtual environment (git-ignored)
-```
+- OpenAI API keys
+- Adzuna credentials
+- Gmail credentials
+- OAuth tokens
+- Passwords
+- Local SQLite databases
+- Virtual environments
 
-## Architecture
+---
 
-The application follows a modular architecture:
+## Development Progress
 
-```
-main.py (Routes & FastAPI setup)
-   ├── models/ (Data validation & structure)
-   ├── services/ (Business logic)
-   └── database/ (Data persistence)
-```
+### Completed
 
-**Benefits:**
-- Separation of concerns
-- Easy to test and maintain
-- Scalable for future features
-- Clear responsibilities for each module
+- [x] FastAPI backend
+- [x] SQLite database
+- [x] PDF resume parsing
+- [x] Candidate profile extraction
+- [x] Skill extraction
+- [x] Experience extraction
+- [x] Project extraction
+- [x] Resume profile persistence
+- [x] OpenAI resume/job analysis
+- [x] AI match scoring
+- [x] Live internship discovery with Adzuna
+- [x] Multiple internship search categories
+- [x] Duplicate job prevention
+- [x] Discovered-job storage
+- [x] Application tracking
+- [x] Discovered-job to application workflow
+- [x] Application status management
+- [x] Automatic application dates
+- [x] Application notes
+- [x] Interview scheduling
+- [x] Job-related email classification
+- [x] Application/email matching
+- [x] Interview date extraction
+- [x] Interview reminders
+- [x] Background scheduling
+- [x] Dashboard API
 
-## Development Roadmap
+### Currently Working On
 
-### Phase 1: Backend Foundation ✅
-Core FastAPI setup, basic endpoints, and data models
+- [ ] React frontend dashboard
+- [ ] Improving job-search performance
+- [ ] Improving job filtering
+- [ ] Organizing automated tests
 
-### Phase 2: Job Matching ✅
-Keyword-based job matching with skill comparison
+### Future Improvements
 
-### Phase 3: Application Tracker ✅
-CRUD operations for job applications
-
-### Phase 4: Resume Processing 🔄
-PDF parsing and skill extraction (In Progress)
-
-### Phase 5: AI Integration 📋
-LLM-powered resume analysis and matching
-
-### Phase 6: Resume Tailoring 📋
-Automated resume customization for jobs
-
-### Phase 7: Cover Letter Generation 📋
-AI-generated customized cover letters
-
-### Phase 8-10: Advanced Features 📋
-Job search, ranking, and full AI agent workflow
-
-## Configuration
-
-### Environment Variables
-
-For future AI integration, create a `.env` file (see `.env.example`):
-
-```bash
-OPENAI_API_KEY=your_key_here
-# Other LLM provider keys can be added here
-```
-
-**Important**: Never commit `.env` to version control. It's listed in `.gitignore`.
-
-## Database
-
-The application uses SQLite for local development.
-
-**Database File**: `backend/applications.db`
-
-**Schema**:
-```sql
-CREATE TABLE applications (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    title TEXT NOT NULL,
-    company TEXT NOT NULL,
-    description TEXT NOT NULL,
-    status TEXT NOT NULL
-);
-```
-
-**Application Status Values:**
-- `Saved`
-- `Applied`
-- `Interview`
-- `Rejected`
-- `Offer`
-
-## Responsible AI Guidelines
-
-This project follows strict responsible AI principles:
-
-1. ✅ Never invent candidate experience
-2. ✅ Never invent education or certifications
-3. ✅ Never claim unknown skills
-4. ✅ Clearly distinguish required vs. preferred skills
-5. ✅ Preserve resume factual accuracy
-6. ✅ User controls all submissions
-7. ✅ Transparent AI-generated content
-
-## Testing
-
-### Using Swagger UI
-
-1. Navigate to http://localhost:8000/docs
-2. Try endpoints directly from the browser interface
-3. View request/response examples
-
-### Example Test Workflow
-
-1. Create a candidate profile (`POST /profile`)
-2. Upload a resume (`POST /upload-resume`)
-3. Save a job application (`POST /applications`)
-4. Match candidate with job (`POST /match-job`)
-5. Check applications (`GET /applications`)
-
-## Future Enhancements
-
-- [ ] PostgreSQL for production
-- [ ] Authentication & authorization
-- [ ] Email notifications
+- [ ] User authentication
+- [ ] PostgreSQL database
+- [ ] Cloud deployment
+- [ ] Analytics and visualizations
 - [ ] Calendar integration
-- [ ] Advanced filtering & search
-- [ ] Data export (PDF, CSV)
-- [ ] Job board API integrations
-- [ ] Deployment to cloud (AWS, Heroku)
+- [ ] Resume tailoring
+- [ ] Cover-letter assistance
+- [ ] Additional job providers
 
-## Contributing
+---
 
-Contributions are welcome! Please:
+## Why I Built This Project
 
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit changes (`git commit -m 'Add amazing feature'`)
-4. Push to branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+Searching for internships involves more than finding job postings. A student may need to compare many job descriptions, determine which positions fit their skills, keep track of application statuses, monitor emails, prepare for interviews, and remember important dates.
 
-## Learning Outcomes
+I wanted to explore how AI and backend automation could make that process easier while still keeping the final decisions with the user.
 
-This project demonstrates:
+This project has also given me practical experience working with APIs, databases, AI integration, backend development, automation, email processing, and application architecture.
 
-- Backend API development with FastAPI
-- REST API design principles
-- Database design and SQL
-- File upload and processing
-- PDF parsing and text extraction
-- Job matching algorithms
-- CRUD operations
-- Pydantic data validation
-- Git and version control
-- Responsible AI development
-- Clean code architecture
-
-## Roadmap for Interviews
-
-This project can be explained in technical interviews by covering:
-
-1. **Architecture**: Modular design with separate concerns
-2. **Features**: Resume parsing, matching, tracking
-3. **Technical Decisions**: Why FastAPI, SQLite, Pydantic
-4. **Scalability**: Path to PostgreSQL, async processing
-5. **AI Integration**: Pluggable LLM architecture
-6. **Responsible AI**: Safeguards against hallucination
-
-## License
-
-This project is open source and available under the MIT License.
+---
 
 ## Author
 
 **Sandeep Shah**
-- GitHub: [@sande231](https://github.com/sande231)
-- Email: [Your Email]
 
-## Support
+Computer Science Student
 
-For issues, questions, or suggestions:
-
-- Open an [Issue](https://github.com/sande231/AI-Job-Agent/issues)
-- Check existing [Documentation](./backend/README.md)
-- Review [API Docs](http://localhost:8000/docs) (when running locally)
+GitHub: [@sande231](https://github.com/sande231)
 
 ---
 
-**Status**: Active Development 🚀
-
-**Last Updated**: 2026
+> This project is under active development. The backend is functional, and the next major phase is building the React frontend.

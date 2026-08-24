@@ -35,3 +35,11 @@ __pycache__/
 build/
 dist/
 *.egg-info/
+
+
+backend/credentials.json
+backend/token.json*.backup
+
+# Gmail OAuth credentials and tokens
+backend/credentials.json
+backend/token.json
