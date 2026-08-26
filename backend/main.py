@@ -96,12 +96,15 @@ app.add_middleware(
     allow_origins=[
         "http://localhost:5173",
         "http://127.0.0.1:5173",
+        "http://localhost:5174",
+        "http://127.0.0.1:5174",
+        "http://localhost:5175",
+        "http://127.0.0.1:5175",
     ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
 
 @app.on_event("startup")
 def startup_event():
@@ -136,35 +139,44 @@ def about():
 
 @app.get("/profile")
 def profile():
+    # First try the profile currently stored in memory
+    saved_profile = get_resume_profile()
+
+    if saved_profile is not None:
+        return {
+            "name": saved_profile.name,
+            "education": saved_profile.education,
+            "career_goal": saved_profile.career_goal,
+            "skills": saved_profile.skills,
+            "experience": saved_profile.experience,
+            "projects": saved_profile.projects,
+        }
+
+    # If the server restarted, load the latest profile
+    # from SQLite instead
+    db_profile = get_resume_profile_from_db()
+
+    if db_profile is not None:
+        return {
+            "name": db_profile["name"],
+            "education": db_profile["education"],
+            "career_goal": db_profile["career_goal"],
+            "skills": db_profile["skills"],
+            "experience": db_profile["experience"],
+            "projects": db_profile["projects"],
+        }
+
     return {
-        "name": "Sandeep",
-        "education": "Bachelor's in Computer Science",
-        "career_goal": (
-            "Software Engineering, AI, Machine Learning, "
-            "or GenAI Internship"
+        "message": (
+            "No resume profile found. "
+            "Please upload a resume first."
         ),
-        "skills": [
-            "Python",
-            "FastAPI",
-            "JavaScript",
-            "React",
-            "Vite",
-            "Tailwind CSS",
-            "REST APIs",
-            "Machine Learning",
-            "Generative AI",
-            "AI Agents",
-            "RAG",
-            "Google Gemini",
-            "Google ADK",
-            "Vertex AI Search",
-            "MySQL",
-            "Redis",
-            "Docker",
-            "Google Cloud Run",
-            "Git",
-            "GitHub",
-        ],
+        "name": "",
+        "education": "",
+        "career_goal": "",
+        "skills": [],
+        "experience": [],
+        "projects": [],
     }
 
 
@@ -1057,7 +1069,7 @@ def live_discover_and_save_jobs():
             continue
 
         # Save strong/review jobs
-        save_discovered_job_to_db(
+        discovered_job_id = save_discovered_job_to_db(
             title=job["title"],
             company=job["company"],
             description=job["description"],
@@ -1069,9 +1081,14 @@ def live_discover_and_save_jobs():
         )
 
         saved_jobs.append({
+            "id": discovered_job_id,
             **job,
             "match_score": match_score,
             "status": status,
+            "score_breakdown": analysis.get(
+                "score_breakdown",
+                {},
+            ),
             "matching_skills": analysis.get(
                 "matching_skills",
                 [],
