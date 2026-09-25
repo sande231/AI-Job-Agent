@@ -171,6 +171,61 @@ def get_applications_from_db():
     return applications
 
 
+
+def get_application_by_id(application_id):
+    """
+    Return one application as a dictionary, or None if no
+    application has this id.
+    """
+    connection = sqlite3.connect(DATABASE_NAME)
+    cursor = connection.cursor()
+
+    cursor.execute("""
+        SELECT
+            id,
+            title,
+            company,
+            description,
+            status,
+            job_url,
+            match_score,
+            location,
+            date_applied,
+            interview_date,
+            deadline,
+            notes,
+            applied_via,
+            ats_platform,
+            submission_status
+        FROM applications
+        WHERE id = ?
+        LIMIT 1
+    """, (application_id,))
+
+    row = cursor.fetchone()
+    connection.close()
+
+    if row is None:
+        return None
+
+    return {
+        "id": row[0],
+        "title": row[1],
+        "company": row[2],
+        "description": row[3],
+        "status": row[4],
+        "job_url": row[5],
+        "match_score": row[6],
+        "location": row[7],
+        "date_applied": row[8],
+        "interview_date": row[9],
+        "deadline": row[10],
+        "notes": row[11],
+        "applied_via": row[12],
+        "ats_platform": row[13],
+        "submission_status": row[14],
+    }
+
 def update_application_status(
     application_id,
     new_status,
