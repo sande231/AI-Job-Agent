@@ -40,6 +40,7 @@ from services.application_matcher import match_email_to_application
 from services.ai_service import (
     analyze_resume_and_job,
     generate_application_materials,
+    generate_interview_preparation,
 )
 from services.contact_extractor import extract_contact_info
 from services.ats_detector import detect_ats_platform
@@ -288,6 +289,45 @@ def generate_application_materials_endpoint(application_id: int):
         "title": application["title"],
         "company": application["company"],
         "materials": materials,
+    }
+
+
+
+@app.post("/applications/{application_id}/interview-prep")
+def generate_interview_prep(application_id: int):
+    application = get_application_by_id(application_id)
+
+    if application is None:
+        return {
+            "message": "Application not found",
+            "application_id": application_id,
+        }
+
+    saved_resume_text = get_resume_text()
+
+    if saved_resume_text is None:
+        db_profile = get_resume_profile_from_db()
+
+        if db_profile is None:
+            return {
+                "message": "Please upload your resume first."
+            }
+
+        saved_resume_text = db_profile["resume_text"]
+
+    preparation = generate_interview_preparation(
+        resume_text=saved_resume_text,
+        job_title=application["title"],
+        company=application["company"],
+        job_description=application["description"],
+    )
+
+    return {
+        "message": "Interview preparation generated successfully",
+        "application_id": application_id,
+        "title": application["title"],
+        "company": application["company"],
+        "preparation": preparation,
     }
 
 
