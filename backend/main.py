@@ -41,6 +41,7 @@ from services.ai_service import (
     analyze_resume_and_job,
     generate_application_materials,
     generate_interview_preparation,
+    generate_application_form_answers,
 )
 from services.contact_extractor import extract_contact_info
 from services.ats_detector import detect_ats_platform
@@ -329,6 +330,45 @@ def generate_interview_prep(application_id: int):
         "title": application["title"],
         "company": application["company"],
         "preparation": preparation,
+    }
+
+
+
+@app.post("/applications/{application_id}/form-assistance")
+def generate_form_assistance(application_id: int):
+    application = get_application_by_id(application_id)
+
+    if application is None:
+        return {
+            "message": "Application not found",
+            "application_id": application_id,
+        }
+
+    saved_resume_text = get_resume_text()
+
+    if saved_resume_text is None:
+        db_profile = get_resume_profile_from_db()
+
+        if db_profile is None:
+            return {
+                "message": "Please upload your resume first."
+            }
+
+        saved_resume_text = db_profile["resume_text"]
+
+    answers = generate_application_form_answers(
+        resume_text=saved_resume_text,
+        job_title=application["title"],
+        company=application["company"],
+        job_description=application["description"],
+    )
+
+    return {
+        "message": "Application form assistance generated successfully",
+        "application_id": application_id,
+        "title": application["title"],
+        "company": application["company"],
+        "answers": answers,
     }
 
 
