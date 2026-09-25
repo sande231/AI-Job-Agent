@@ -746,6 +746,26 @@ def create_discovered_jobs_table():
         )
     """)
 
+    new_columns = [
+        ("score_breakdown", "TEXT"),
+        ("matching_skills", "TEXT"),
+        ("missing_skills", "TEXT"),
+        ("strengths", "TEXT"),
+        ("gaps", "TEXT"),
+        ("recommendation", "TEXT"),
+    ]
+
+    for column_name, column_type in new_columns:
+        try:
+            cursor.execute(
+                f"""
+                ALTER TABLE discovered_jobs
+                ADD COLUMN {column_name} {column_type}
+                """
+            )
+        except sqlite3.OperationalError:
+            pass
+
     connection.commit()
     connection.close()
 
@@ -759,6 +779,12 @@ def save_discovered_job_to_db(
     source=None,
     match_score=None,
     status="Discovered",
+    score_breakdown=None,
+    matching_skills=None,
+    missing_skills=None,
+    strengths=None,
+    gaps=None,
+    recommendation=None,
 ):
     connection = sqlite3.connect(DATABASE_NAME)
     cursor = connection.cursor()
@@ -772,9 +798,15 @@ def save_discovered_job_to_db(
             job_url,
             source,
             match_score,
-            status
+            status,
+            score_breakdown,
+            matching_skills,
+            missing_skills,
+            strengths,
+            gaps,
+            recommendation
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """, (
         title,
         company,
@@ -784,12 +816,16 @@ def save_discovered_job_to_db(
         source,
         match_score,
         status,
+        json.dumps(score_breakdown) if score_breakdown is not None else None,
+        json.dumps(matching_skills) if matching_skills is not None else None,
+        json.dumps(missing_skills) if missing_skills is not None else None,
+        json.dumps(strengths) if strengths is not None else None,
+        json.dumps(gaps) if gaps is not None else None,
+        recommendation,
     ))
 
     connection.commit()
-
     discovered_job_id = cursor.lastrowid
-
     connection.close()
 
     return discovered_job_id
@@ -809,13 +845,18 @@ def get_discovered_jobs_from_db():
             job_url,
             source,
             match_score,
-            status
+            status,
+            score_breakdown,
+            matching_skills,
+            missing_skills,
+            strengths,
+            gaps,
+            recommendation
         FROM discovered_jobs
         ORDER BY id DESC
     """)
 
     rows = cursor.fetchall()
-
     connection.close()
 
     jobs = []
@@ -831,14 +872,16 @@ def get_discovered_jobs_from_db():
             "source": row[6],
             "match_score": row[7],
             "status": row[8],
+            "score_breakdown": json.loads(row[9]) if row[9] else {},
+            "matching_skills": json.loads(row[10]) if row[10] else [],
+            "missing_skills": json.loads(row[11]) if row[11] else [],
+            "strengths": json.loads(row[12]) if row[12] else [],
+            "gaps": json.loads(row[13]) if row[13] else [],
+            "recommendation": row[14],
         })
 
     return jobs
 
-
-# =========================================================
-# NEW HELPER: GET ONE DISCOVERED JOB
-# =========================================================
 
 def get_discovered_job_by_id(job_id):
     connection = sqlite3.connect(DATABASE_NAME)
@@ -854,16 +897,19 @@ def get_discovered_job_by_id(job_id):
             job_url,
             source,
             match_score,
-            status
+            status,
+            score_breakdown,
+            matching_skills,
+            missing_skills,
+            strengths,
+            gaps,
+            recommendation
         FROM discovered_jobs
         WHERE id = ?
         LIMIT 1
-    """, (
-        job_id,
-    ))
+    """, (job_id,))
 
     row = cursor.fetchone()
-
     connection.close()
 
     if row is None:
@@ -879,12 +925,14 @@ def get_discovered_job_by_id(job_id):
         "source": row[6],
         "match_score": row[7],
         "status": row[8],
+        "score_breakdown": json.loads(row[9]) if row[9] else {},
+        "matching_skills": json.loads(row[10]) if row[10] else [],
+        "missing_skills": json.loads(row[11]) if row[11] else [],
+        "strengths": json.loads(row[12]) if row[12] else [],
+        "gaps": json.loads(row[13]) if row[13] else [],
+        "recommendation": row[14],
     }
 
-
-# =========================================================
-# NEW HELPER: UPDATE DISCOVERED JOB STATUS
-# =========================================================
 
 def update_discovered_job_status(
     job_id,
@@ -903,9 +951,49 @@ def update_discovered_job_status(
     ))
 
     connection.commit()
-
     updated_rows = cursor.rowcount
+    connection.close()
 
+    return updated_rows
+
+
+def update_discovered_job_analysis(
+    job_id,
+    match_score,
+    score_breakdown,
+    matching_skills,
+    missing_skills,
+    strengths,
+    gaps,
+    recommendation,
+):
+    connection = sqlite3.connect(DATABASE_NAME)
+    cursor = connection.cursor()
+
+    cursor.execute("""
+        UPDATE discovered_jobs
+        SET
+            match_score = ?,
+            score_breakdown = ?,
+            matching_skills = ?,
+            missing_skills = ?,
+            strengths = ?,
+            gaps = ?,
+            recommendation = ?
+        WHERE id = ?
+    """, (
+        match_score,
+        json.dumps(score_breakdown),
+        json.dumps(matching_skills),
+        json.dumps(missing_skills),
+        json.dumps(strengths),
+        json.dumps(gaps),
+        recommendation,
+        job_id,
+    ))
+
+    connection.commit()
+    updated_rows = cursor.rowcount
     connection.close()
 
     return updated_rows

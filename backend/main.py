@@ -92,6 +92,7 @@ from database.database import (
     discovered_job_exists,
     get_discovered_job_by_id,
     update_discovered_job_status,
+    update_discovered_job_analysis,
     update_application_notes,
 )
 
@@ -435,6 +436,53 @@ def get_discovered_jobs():
         "message": "Discovered jobs retrieved successfully",
         "total_jobs": len(jobs),
         "jobs": jobs,
+    }
+
+
+
+@app.post("/discovered-jobs/{job_id}/reanalyze")
+def reanalyze_discovered_job(job_id: int):
+    job = get_discovered_job_by_id(job_id)
+
+    if job is None:
+        return {
+            "message": "Discovered job not found",
+            "job_id": job_id,
+        }
+
+    saved_resume_text = get_resume_text()
+
+    if saved_resume_text is None:
+        db_profile = get_resume_profile_from_db()
+
+        if db_profile is None:
+            return {
+                "message": "Please upload your resume first."
+            }
+
+        saved_resume_text = db_profile["resume_text"]
+
+    analysis = analyze_resume_and_job(
+        saved_resume_text,
+        job["description"],
+    )
+
+    update_discovered_job_analysis(
+        job_id=job_id,
+        match_score=analysis["match_score"],
+        score_breakdown=analysis["score_breakdown"],
+        matching_skills=analysis["matching_skills"],
+        missing_skills=analysis["missing_skills"],
+        strengths=analysis["strengths"],
+        gaps=analysis["gaps"],
+        recommendation=analysis["recommendation"],
+    )
+
+    updated_job = get_discovered_job_by_id(job_id)
+
+    return {
+        "message": "Job reanalyzed successfully",
+        "job": updated_job,
     }
 
 
