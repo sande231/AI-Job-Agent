@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
-function DiscoverJobsPage() {
+function DiscoverJobsPage({ onViewJob }) {
   const [liveJobs, setLiveJobs] = useState([]);
   const [loadingLiveJobs, setLoadingLiveJobs] = useState(false);
   const [discoveringJobs, setDiscoveringJobs] = useState(false);
@@ -9,6 +9,38 @@ function DiscoverJobsPage() {
   const [analyzedJobs, setAnalyzedJobs] = useState([]);
   const [skippedJobs, setSkippedJobs] = useState([]);
   const [movingJobId, setMovingJobId] = useState(null);
+
+  const loadSavedJobs = async () => {
+    try {
+      setError("");
+
+      const response = await fetch(
+        "http://127.0.0.1:8000/discovered-jobs"
+      );
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          result.message || "Unable to load saved jobs"
+        );
+      }
+
+      const availableJobs = (result.jobs || []).filter(
+        (job) =>
+          job.status === "Discovered" ||
+          job.status === "Review"
+      );
+
+      setAnalyzedJobs(availableJobs);
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  useEffect(() => {
+    loadSavedJobs();
+  }, []);
 
   const previewLiveJobs = async () => {
     try {
@@ -64,8 +96,9 @@ function DiscoverJobsPage() {
         );
       }
 
-      setAnalyzedJobs(result.saved_jobs || []);
       setSkippedJobs(result.skipped_jobs || []);
+
+      await loadSavedJobs();
 
       setMessage(
         `Analysis complete. Saved ${
@@ -347,6 +380,13 @@ function DiscoverJobsPage() {
                       View Job
                     </a>
                   )}
+
+                  <button
+                    className="view-analysis-button"
+                    onClick={() => onViewJob(job)}
+                  >
+                    View Analysis
+                  </button>
 
                   <button
                     className="move-application-button"

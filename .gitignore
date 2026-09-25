@@ -43,3 +43,12 @@ backend/token.json*.backup
 # Gmail OAuth credentials and tokens
 backend/credentials.json
 backend/token.json
+
+# Local development backups / snapshots
+backend 2/
+*.backup
+*.zip
+
+# Python cache
+__pycache__/
+*.pyc

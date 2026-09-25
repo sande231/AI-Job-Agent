@@ -4,6 +4,8 @@ function DashboardPage() {
   const [dashboard, setDashboard] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [checkingEmails, setCheckingEmails] = useState(false);
+  const [emailResult, setEmailResult] = useState(null);
 
   const loadDashboard = async () => {
     try {
@@ -30,6 +32,41 @@ function DashboardPage() {
   useEffect(() => {
     loadDashboard();
   }, []);
+
+  const handleCheckRecruitingEmails = async () => {
+    try {
+      setCheckingEmails(true);
+      setEmailResult(null);
+
+      const response = await fetch(
+        "http://127.0.0.1:8000/emails/process",
+        {
+          method: "POST",
+        }
+      );
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          result.message ||
+            "Unable to process recruiting emails"
+        );
+      }
+
+      setEmailResult(result);
+
+      // Reload dashboard because application
+      // statuses may have changed.
+      await loadDashboard();
+    } catch (err) {
+      setEmailResult({
+        error: err.message,
+      });
+    } finally {
+      setCheckingEmails(false);
+    }
+  };
 
   if (loading && !dashboard) {
     return (
@@ -73,14 +110,58 @@ function DashboardPage() {
           </p>
         </div>
 
-        <button
-          className="dashboard-refresh"
-          onClick={loadDashboard}
-          disabled={loading}
-        >
-          {loading ? "Refreshing..." : "Refresh"}
-        </button>
+        <div>
+          <button
+            className="dashboard-refresh"
+            onClick={handleCheckRecruitingEmails}
+            disabled={checkingEmails}
+          >
+            {checkingEmails
+              ? "Checking Emails..."
+              : "Check Recruiting Emails"}
+          </button>
+
+          <button
+            className="dashboard-refresh"
+            onClick={loadDashboard}
+            disabled={loading}
+          >
+            {loading ? "Refreshing..." : "Refresh"}
+          </button>
+        </div>
       </div>
+
+      {emailResult && (
+        <div className={
+          emailResult.error
+            ? "discovery-error"
+            : "empty-card"
+        }>
+          {emailResult.error ? (
+            <p>{emailResult.error}</p>
+          ) : (
+            <>
+              <strong>
+                Recruiting email check completed.
+              </strong>
+
+              <p>
+                {emailResult.updated_applications ?? 0}
+                {" "}application(s) updated.
+              </p>
+
+              {emailResult.processed?.map(
+                (item, index) => (
+                  <p key={index}>
+                    {item.company} — {item.title}:{" "}
+                    {item.old_status} → {item.new_status}
+                  </p>
+                )
+              )}
+            </>
+          )}
+        </div>
+      )}
 
       <section className="stats-grid">
         <div className="stat-card">

@@ -3,3 +3,11 @@ uvicorn[standard]
 pydantic==2.13.4
 python-multipart==0.0.32
 pypdf==6.15.0
+python-dotenv
+requests
+openai
+APScheduler
+google-auth
+google-auth-oauthlib
+google-api-python-client
+pytest

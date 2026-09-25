@@ -34,6 +34,9 @@ def create_database():
         ("interview_date", "TEXT"),
         ("deadline", "TEXT"),
         ("notes", "TEXT"),
+        ("applied_via", "TEXT"),
+        ("ats_platform", "TEXT"),
+        ("submission_status", "TEXT"),
     ]
 
     for column_name, column_type in new_columns:
@@ -64,6 +67,9 @@ def save_application_to_db(
     interview_date=None,
     deadline=None,
     notes=None,
+    applied_via="manual",
+    ats_platform=None,
+    submission_status=None,
 ):
     connection = sqlite3.connect(DATABASE_NAME)
     cursor = connection.cursor()
@@ -80,9 +86,12 @@ def save_application_to_db(
             date_applied,
             interview_date,
             deadline,
-            notes
+            notes,
+            applied_via,
+            ats_platform,
+            submission_status
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """, (
         title,
         company,
@@ -95,6 +104,9 @@ def save_application_to_db(
         interview_date,
         deadline,
         notes,
+        applied_via,
+        ats_platform,
+        submission_status,
     ))
 
     connection.commit()
@@ -123,7 +135,10 @@ def get_applications_from_db():
             date_applied,
             interview_date,
             deadline,
-            notes
+            notes,
+            applied_via,
+            ats_platform,
+            submission_status
         FROM applications
         ORDER BY id DESC
     """)
@@ -148,6 +163,9 @@ def get_applications_from_db():
             "interview_date": row[9],
             "deadline": row[10],
             "notes": row[11],
+            "applied_via": row[12],
+            "ats_platform": row[13],
+            "submission_status": row[14],
         })
 
     return applications
@@ -272,6 +290,25 @@ def create_resume_profile_table():
         )
     """)
 
+    # Add newer columns safely if they do not already exist
+    new_columns = [
+        ("email", "TEXT"),
+        ("phone", "TEXT"),
+        ("linkedin_url", "TEXT"),
+    ]
+
+    for column_name, column_type in new_columns:
+        try:
+            cursor.execute(
+                f"""
+                ALTER TABLE resume_profiles
+                ADD COLUMN {column_name} {column_type}
+                """
+            )
+        except sqlite3.OperationalError:
+            # Column already exists
+            pass
+
     connection.commit()
     connection.close()
 
@@ -296,9 +333,12 @@ def save_resume_profile_to_db(
             skills,
             experience,
             projects,
-            resume_text
+            resume_text,
+            email,
+            phone,
+            linkedin_url
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """, (
         profile.name,
         profile.education,
@@ -307,6 +347,9 @@ def save_resume_profile_to_db(
         json.dumps(profile.experience),
         json.dumps(profile.projects),
         resume_text,
+        profile.email,
+        profile.phone,
+        profile.linkedin_url,
     ))
 
     connection.commit()
@@ -325,7 +368,10 @@ def get_resume_profile_from_db():
             skills,
             experience,
             projects,
-            resume_text
+            resume_text,
+            email,
+            phone,
+            linkedin_url
         FROM resume_profiles
         ORDER BY id DESC
         LIMIT 1
@@ -346,6 +392,9 @@ def get_resume_profile_from_db():
         "experience": json.loads(row[4]),
         "projects": json.loads(row[5]),
         "resume_text": row[6],
+        "email": row[7],
+        "phone": row[8],
+        "linkedin_url": row[9],
     }
 
 

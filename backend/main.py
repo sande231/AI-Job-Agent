@@ -38,6 +38,9 @@ from services.project_extractor import extract_projects
 from services.job_matcher import analyze_job
 from services.application_matcher import match_email_to_application
 from services.ai_service import analyze_resume_and_job
+from services.contact_extractor import extract_contact_info
+from services.ats_detector import detect_ats_platform
+from services.apply_adapters import get_adapter_for_url
 
 from services.profile_store import (
     save_resume_profile,
@@ -150,6 +153,9 @@ def profile():
             "skills": saved_profile.skills,
             "experience": saved_profile.experience,
             "projects": saved_profile.projects,
+            "email": saved_profile.email,
+            "phone": saved_profile.phone,
+            "linkedin_url": saved_profile.linkedin_url,
         }
 
     # If the server restarted, load the latest profile
@@ -164,6 +170,9 @@ def profile():
             "skills": db_profile["skills"],
             "experience": db_profile["experience"],
             "projects": db_profile["projects"],
+            "email": db_profile["email"],
+            "phone": db_profile["phone"],
+            "linkedin_url": db_profile["linkedin_url"],
         }
 
     return {
@@ -177,6 +186,9 @@ def profile():
         "skills": [],
         "experience": [],
         "projects": [],
+        "email": "",
+        "phone": "",
+        "linkedin_url": "",
     }
 
 
@@ -367,6 +379,10 @@ def upload_resume(
         resume_text
     )
 
+    contact_info = extract_contact_info(
+        resume_text
+    )
+
     auto_profile = ResumeProfile(
         name=basic_profile["name"],
         education=basic_profile["education"],
@@ -377,6 +393,9 @@ def upload_resume(
         skills=detected_skills,
         experience=detected_experience,
         projects=detected_projects,
+        email=contact_info["email"],
+        phone=contact_info["phone"],
+        linkedin_url=contact_info["linkedin_url"],
     )
 
     save_resume_profile(
@@ -1160,6 +1179,69 @@ def apply_to_discovered_job(job_id: int):
         "match_score": job["match_score"],
         "status": "Applied",
     }
+
+
+@app.post("/discovered-jobs/{job_id}/prepare-application")
+def prepare_application_for_discovered_job(job_id: int):
+    """
+    Preview what an auto-filled application would contain for this
+    job, using whichever ATS adapter matches its job_url. This does
+    NOT submit anything anywhere - it only shows what would be
+    sent, and flags anything missing, so submission stays an
+    explicit, separate, human-reviewed step.
+    """
+    job = get_discovered_job_by_id(job_id)
+
+    if job is None:
+        return {
+            "message": "Discovered job not found"
+        }
+
+    job_url = job["job_url"]
+    platform = detect_ats_platform(job_url)
+    adapter = get_adapter_for_url(job_url)
+
+    if adapter is None:
+        return {
+            "job_id": job_id,
+            "job_url": job_url,
+            "ats_platform": platform,
+            "supported": False,
+            "message": (
+                f"No auto-apply adapter for '{platform}' yet - "
+                "this one needs a manual application."
+            ),
+        }
+
+    saved_profile = get_resume_profile()
+
+    if saved_profile is not None:
+        profile = saved_profile.dict()
+        profile["resume_text"] = get_resume_text()
+    else:
+        profile = get_resume_profile_from_db()
+
+    if profile is None:
+        return {
+            "job_id": job_id,
+            "job_url": job_url,
+            "ats_platform": platform,
+            "supported": True,
+            "message": (
+                "No resume profile found - upload a resume before "
+                "preparing an application."
+            ),
+        }
+
+    prepared = adapter.prepare_application(job_url, profile)
+
+    return {
+        "job_id": job_id,
+        "job_url": job_url,
+        "supported": True,
+        **prepared.to_dict(),
+    }
+
 
 @app.put("/applications/{application_id}/interview")
 def set_application_interview(

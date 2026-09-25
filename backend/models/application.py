@@ -15,3 +15,8 @@ class Application(BaseModel):
     interview_date: Optional[str] = None
     deadline: Optional[str] = None
     notes: Optional[str] = None
+
+    # Auto-apply tracking
+    applied_via: Optional[str] = "manual"      # "manual" | "auto"
+    ats_platform: Optional[str] = None          # "greenhouse", "lever", "unknown", ...
+    submission_status: Optional[str] = None     # "prepared", "submitted", "manual_required", ...

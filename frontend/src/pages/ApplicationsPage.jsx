@@ -12,6 +12,11 @@ function ApplicationsPage() {
   const [schedulingInterviewId, setSchedulingInterviewId] = useState(null);
   const [savingNotesId, setSavingNotesId] = useState(null);
   const [deletingId, setDeletingId] = useState(null);
+  const [generatingMaterialsId, setGeneratingMaterialsId] =
+    useState(null);
+
+  const [applicationMaterials, setApplicationMaterials] =
+    useState({});
 
   const loadApplications = async () => {
     try {
@@ -208,6 +213,39 @@ function ApplicationsPage() {
       alert(err.message);
     } finally {
       setDeletingId(null);
+    }
+  };
+
+  const handleGenerateMaterials = async (
+    applicationId
+  ) => {
+    try {
+      setGeneratingMaterialsId(applicationId);
+
+      const response = await fetch(
+        `http://127.0.0.1:8000/applications/${applicationId}/generate-materials`,
+        {
+          method: "POST",
+        }
+      );
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          result.message ||
+            "Unable to generate application materials"
+        );
+      }
+
+      setApplicationMaterials((previous) => ({
+        ...previous,
+        [applicationId]: result.materials,
+      }));
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      setGeneratingMaterialsId(null);
     }
   };
 
@@ -428,6 +466,85 @@ function ApplicationsPage() {
                       : "Save Notes"}
                   </button>
                 </div>
+              </div>
+
+              <div className="application-materials-panel">
+                <button
+                  className="generate-materials-button"
+                  onClick={() =>
+                    handleGenerateMaterials(application.id)
+                  }
+                  disabled={
+                    generatingMaterialsId === application.id
+                  }
+                >
+                  {generatingMaterialsId === application.id
+                    ? "Generating..."
+                    : "Generate Application Materials"}
+                </button>
+
+                {applicationMaterials[application.id] && (
+                  <div className="generated-materials">
+                    <div className="generated-section">
+                      <h3>Cover Letter Draft</h3>
+
+                      <pre className="cover-letter-output">
+                        {
+                          applicationMaterials[
+                            application.id
+                          ].cover_letter
+                        }
+                      </pre>
+                    </div>
+
+                    <div className="generated-section">
+                      <h3>Resume Suggestions</h3>
+
+                      {applicationMaterials[
+                        application.id
+                      ].resume_suggestions?.length > 0 ? (
+                        <ul>
+                          {applicationMaterials[
+                            application.id
+                          ].resume_suggestions.map(
+                            (suggestion, index) => (
+                              <li key={index}>
+                                {suggestion}
+                              </li>
+                            )
+                          )}
+                        </ul>
+                      ) : (
+                        <p>No resume suggestions returned.</p>
+                      )}
+                    </div>
+
+                    <div className="generated-section">
+                      <h3>Skills to Emphasize</h3>
+
+                      {applicationMaterials[
+                        application.id
+                      ].skills_to_emphasize?.length > 0 ? (
+                        <div className="analysis-skills">
+                          {applicationMaterials[
+                            application.id
+                          ].skills_to_emphasize.map(
+                            (skill, index) => (
+                              <span
+                                className="matching-skill"
+                                key={`${skill}-${index}`}
+                              >
+                                {skill}
+                              </span>
+                            )
+                          )}
+                        </div>
+                      ) : (
+                        <p>No skills returned.</p>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="application-card-footer">

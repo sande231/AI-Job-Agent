@@ -1720,3 +1720,86 @@ html {
   color: #2563eb;
   font-size: 15px;
 }
+
+.view-analysis-button {
+  border: none;
+  background: #7c3aed;
+  color: white;
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.view-analysis-button:hover {
+  background: #6d28d9;
+}
+
+.reanalyze-button {
+  border: none;
+  background: #7c3aed;
+  color: white;
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.reanalyze-button:hover:not(:disabled) {
+  background: #6d28d9;
+}
+
+.reanalyze-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.job-details-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.application-materials-panel {
+  margin-top: 18px;
+}
+
+.generate-materials-button {
+  border: none;
+  background: #2563eb;
+  color: white;
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.generate-materials-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.generated-materials {
+  margin-top: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.generated-section {
+  background: #f8fafc;
+  border-radius: 10px;
+  padding: 16px;
+}
+
+.generated-section h3 {
+  margin-top: 0;
+}
+
+.cover-letter-output {
+  white-space: pre-wrap;
+  font-family: inherit;
+  line-height: 1.6;
+  margin: 0;
+}

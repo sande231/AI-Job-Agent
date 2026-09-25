@@ -2,7 +2,7 @@ from services.application_matcher import match_email_to_application
 from services.email_classifier import classify_job_email
 
 
-applications = [
+APPLICATIONS = [
     {
         "id": 2,
         "title": "AI Engineer Intern",
@@ -18,30 +18,42 @@ applications = [
 ]
 
 
-fake_email = {
-    "from": "Example Tech Recruiting <recruiting@exampletech.com>",
-    "subject": "Interview Invitation - AI Intern",
-    "snippet": (
-        "We would like to interview you for the AI Intern "
-        "position at Example Tech."
-    ),
-}
+def test_matches_email_to_correct_application():
+    email = {
+        "from": "Example Tech Recruiting <recruiting@exampletech.com>",
+        "subject": "Interview Invitation - AI Intern",
+        "snippet": (
+            "We would like to interview you for the AI Intern "
+            "position at Example Tech."
+        ),
+    }
+
+    result = match_email_to_application(email, APPLICATIONS)
+
+    assert result is not None
+    assert result["application"]["id"] == 3
+    assert result["application"]["company"] == "Example Tech"
+    assert result["match_score"] > 0
 
 
-match = match_email_to_application(
-    fake_email,
-    applications,
-)
+def test_classifies_interview_email():
+    email = {
+        "from": "Example Tech Recruiting <recruiting@exampletech.com>",
+        "subject": "Interview Invitation - AI Intern",
+        "snippet": (
+            "We would like to interview you for the AI Intern "
+            "position at Example Tech."
+        ),
+    }
 
-status = classify_job_email(fake_email)
+    assert classify_job_email(email) == "Interview"
 
 
-print("Detected Status:", status)
+def test_returns_none_when_no_application_matches():
+    email = {
+        "from": "noreply@unrelated.com",
+        "subject": "Newsletter",
+        "snippet": "Weekly newsletter roundup for our subscribers.",
+    }
 
-if match:
-    print("Matched Application ID:", match["application"]["id"])
-    print("Company:", match["application"]["company"])
-    print("Title:", match["application"]["title"])
-    print("Match Score:", match["match_score"])
-else:
-    print("No matching application found.")
+    assert match_email_to_application(email, APPLICATIONS) is None
