@@ -37,7 +37,10 @@ from services.profile_extractor import extract_basic_profile
 from services.project_extractor import extract_projects
 from services.job_matcher import analyze_job
 from services.application_matcher import match_email_to_application
-from services.ai_service import analyze_resume_and_job
+from services.ai_service import (
+    analyze_resume_and_job,
+    generate_application_materials,
+)
 from services.contact_extractor import extract_contact_info
 from services.ats_detector import detect_ats_platform
 from services.apply_adapters import get_adapter_for_url
@@ -66,6 +69,7 @@ from database.database import (
     create_database,
     save_application_to_db,
     get_applications_from_db,
+    get_application_by_id,
     update_application_status,
     delete_application_from_db,
     create_resume_profile_table,
@@ -245,6 +249,45 @@ def get_applications():
     return {
         "total_applications": len(saved_applications),
         "applications": saved_applications,
+    }
+
+
+
+@app.post("/applications/{application_id}/generate-materials")
+def generate_application_materials_endpoint(application_id: int):
+    application = get_application_by_id(application_id)
+
+    if application is None:
+        return {
+            "message": "Application not found",
+            "application_id": application_id,
+        }
+
+    saved_resume_text = get_resume_text()
+
+    if saved_resume_text is None:
+        db_profile = get_resume_profile_from_db()
+
+        if db_profile is None:
+            return {
+                "message": "Please upload your resume first."
+            }
+
+        saved_resume_text = db_profile["resume_text"]
+
+    materials = generate_application_materials(
+        resume_text=saved_resume_text,
+        job_title=application["title"],
+        company=application["company"],
+        job_description=application["description"],
+    )
+
+    return {
+        "message": "Application materials generated successfully",
+        "application_id": application_id,
+        "title": application["title"],
+        "company": application["company"],
+        "materials": materials,
     }
 
 
